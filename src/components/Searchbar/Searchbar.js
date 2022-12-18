@@ -2,8 +2,10 @@ import css from './Searchbar.module.css';
 import { Component } from 'react';
 
 export class Searchbar extends Component {
-  handleFormSubmit = ({ response }) => {
-    this.props.onSubmit({ response });
+  handleFormSubmit = event => {
+    event.preventDefault();
+    const query = event.target.elements.input.value;
+    this.props.onSubmit({ query });
   };
 
   render() {
@@ -17,8 +19,9 @@ export class Searchbar extends Component {
           <input
             className={css.SearchFormInput}
             type="text"
-            autocomplete="off"
-            autofocus
+            name="input"
+            autoComplete="off"
+            autoFocus
             placeholder="Search images and photos"
           />
         </form>
