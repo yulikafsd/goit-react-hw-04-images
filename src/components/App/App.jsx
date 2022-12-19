@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Searchbar } from 'components/Searchbar/Searchbar';
 import { ImageGallery } from 'components/ImageGallery/ImageGallery';
 import { Button } from 'components/Button/Button';
+import { Modal } from 'components/Modal/Modal';
 
 export class App extends Component {
 
@@ -11,16 +12,21 @@ export class App extends Component {
     query: '',
     page: 1,
     images: [],
+    showModal: false,
   }
 
-  increasePage = async () => {
+  toggleModal = () => {
+    this.setState(({ showModal }) => ({ showModal: !showModal, }));
+  };
+
+  increasePage = () => {
     this.setState(prevState => { return { page: prevState.page + 1 } });
   }
 
-  handleSubmit = async ({ query }) => {
+  handleSubmit = ({ query }) => {
     this.setState({page: 1});
     this.setState({ query: query });
-    await this.fetchImages(query);
+    this.fetchImages(query);
   }
 
   handleClick = () => {
@@ -51,13 +57,18 @@ export class App extends Component {
   }
 
   render() {
+
+    const { images, showModal } = this.state;
+
     return (
       <div className={css.App}>
         <Searchbar onSubmit={this.handleSubmit} />
         <main>
-          <ImageGallery images={this.state.images} />
-          {this.state.images.length > 0 && <Button onClick={this.handleClick} />}
-          </main>
+          <ImageGallery images={images} />
+          {images.length > 0 && <Button onClick={this.handleClick} />}
+          <button type="button" onClick={this.toggleModal}>Open Modal</button>
+          {showModal && (<Modal onClose={this.toggleModal} />)}
+        </main>
       </div>
   )}
 };
