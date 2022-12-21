@@ -4,8 +4,8 @@ import { Component } from 'react';
 export class Searchbar extends Component {
   handleFormSubmit = event => {
     event.preventDefault();
-    const query = event.target.elements.input.value;
-    this.props.onSubmit({ query });
+    const newQuery = event.target.elements.input.value.trim();
+    this.props.onSubmit({ newQuery });
   };
 
   render() {
