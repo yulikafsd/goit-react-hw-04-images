@@ -2,7 +2,7 @@ import css from './App.module.css';
 import { Component } from 'react';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { fetchPictures } from 'services/ApiService';
-import { Searchbar, ImageGallery, Button } from 'components';
+import { Searchbar, ImageGallery, Button, Loader } from 'components';
 
 export class App extends Component {
 
@@ -19,17 +19,18 @@ export class App extends Component {
     const { query, page } = this.state;
 
     if (prevState.page !== page && page !== 1) {
+      this.setState({ status: 'pending' });
 
       try {
         const response = await fetchPictures(query, page);
-        this.setState(({images}) => ({ images: [...images, ...response.hits], status: 'resolved' }));
+        this.setState(({ images }) => ({ images: [...images, ...response.hits], status: 'resolved' }));
         setTimeout(() => this.scroll(), 100);
 
-        } catch (error) {
+      } catch (error) {
         this.setState({ status: 'rejected' });
         console.log(error.message);
-      }      
-      
+      }
+
     }
   }
 
@@ -46,29 +47,29 @@ export class App extends Component {
     if (newQuery === this.state.query) {
       return Notify.warning('That is the same request. Please, enter a new one');
     }
-    
+
     this.setState({ query: newQuery, page: 1, images: [], status: 'pending' });
-    
+
     try {
       const response = await fetchPictures(newQuery, page);
       const { totalHits, hits } = response;
 
-        if (totalHits === 0) {
-          this.setState({ lastPage: 1, status: 'rejected' });
-          Notify.failure('Sorry, there are no images matching your search request. Please try another request.');
-          return;
+      if (totalHits === 0) {
+        this.setState({ lastPage: 1, status: 'rejected' });
+        Notify.failure('Sorry, there are no images matching your search request. Please try another request.');
+        return;
       }
-      
+
       const lastPage = Math.ceil(totalHits / 12);
       this.setState({ lastPage, images: hits, status: 'resolved' });
       Notify.success(`Hurray! ${totalHits} images found`);
 
-        } catch (error) {
-        this.setState({ status: 'rejected' });
-        console.log(error.message);
-    }     
+    } catch (error) {
+      this.setState({ status: 'rejected' });
+      console.log(error.message);
+    }
   }
-  
+
   handleBtnClick = () => {
     this.setState(prevState => ({ page: prevState.page + 1, }));
   }
@@ -86,12 +87,14 @@ export class App extends Component {
     const { images, page, lastPage, status } = this.state;
     return (
       <div className={css.App}>
-        <Searchbar onSubmit={this.handleSubmit} isSubmitting={status === 'pending'}/>
+        <Searchbar onSubmit={this.handleSubmit} isSubmitting={status === 'pending'} />
         <main>
-          {status === 'pending' && <p>LOADING.....</p>}
-          {status === 'resolved' && <ImageGallery images={images} />}
-          {page !== lastPage && status !== 'pending' && <Button onClick={this.handleBtnClick} />}
+          {images.length > 0 && <ImageGallery images={images} />}
+          {status === 'pending'
+            ? (<Loader />)
+            : page !== lastPage && (<Button onClick={this.handleBtnClick} />)}
         </main>
       </div>
-  )}
+    )
+  }
 };
