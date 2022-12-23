@@ -20,36 +20,16 @@ export class App extends Component {
 
     if (prevState.page !== page && page !== 1) {
       this.setState({ status: 'pending' });
+      this.loadMore(query,page);
+    }
 
-      try {
-        const response = await fetchPictures(query, page);
-        this.setState(({ images }) => ({ images: [...images, ...response.hits], status: 'resolved' }));
-        setTimeout(() => this.scroll(), 100);
-
-      } catch (error) {
-        this.setState({ status: 'rejected' });
-        console.log(error.message);
-      }
-
+    if (prevState.query !== query && query !== "") {
+      this.setState({ status: 'pending' });
+      this.makeNewFetch(query, page)
     }
   }
 
-  handleSubmit = async (event) => {
-    event.preventDefault();
-
-    const newQuery = event.target.elements.input.value.trim();
-    const page = 1;
-
-    if (newQuery === "") {
-      return Notify.warning('Search field is empty. Please, enter your request');
-    }
-
-    if (newQuery === this.state.query) {
-      return Notify.warning('That is the same request. Please, enter a new one');
-    }
-
-    this.setState({ query: newQuery, page: 1, images: [], status: 'pending' });
-
+  makeNewFetch = async (newQuery, page) => {
     try {
       const response = await fetchPictures(newQuery, page);
       const { totalHits, hits } = response;
@@ -68,6 +48,36 @@ export class App extends Component {
       this.setState({ status: 'rejected' });
       console.log(error.message);
     }
+  }
+
+  loadMore = async (query, page) => {
+    try {
+        const response = await fetchPictures(query, page);
+        this.setState(({ images }) => ({ images: [...images, ...response.hits], status: 'resolved' }));
+        setTimeout(() => this.scroll(), 100);
+
+      } catch (error) {
+        this.setState({ status: 'rejected' });
+        console.log(error.message);
+      }
+  }
+
+  handleSubmit = async (event) => {
+    event.preventDefault();
+
+    const newQuery = event.target.elements.input.value.trim();
+    const page = 1;
+
+    if (newQuery === "") {
+      return Notify.warning('Search field is empty. Please, enter your request');
+    }
+
+    if (newQuery === this.state.query) {
+      return Notify.warning('That is the same request. Please, enter a new one');
+    }
+
+    this.setState({ query: newQuery, page, images: [], status: 'pending' });
+
   }
 
   handleBtnClick = () => {
