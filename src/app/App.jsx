@@ -42,6 +42,10 @@ export class App extends Component {
     if (newQuery === "") {
       return Notify.warning('Search field is empty. Please, enter your request');
     }
+
+    if (newQuery === this.state.query) {
+      return Notify.warning('That is the same request. Please, enter a new one');
+    }
     
     this.setState({ query: newQuery, page: 1, images: [], status: 'pending' });
     
@@ -86,7 +90,7 @@ export class App extends Component {
         <main>
           {status === 'pending' && <p>LOADING.....</p>}
           {status === 'resolved' && <ImageGallery images={images} />}
-          {page !== lastPage && <Button onClick={this.handleBtnClick} />}
+          {page !== lastPage && status !== 'pending' && <Button onClick={this.handleBtnClick} />}
         </main>
       </div>
   )}
