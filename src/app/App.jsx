@@ -1,90 +1,96 @@
 import css from './App.module.css';
-import { Component } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import { fetchPictures } from 'services/ApiService';
 import { Searchbar, ImageGallery, Button, Loader } from 'components';
 
-export class App extends Component {
+export function App() {
 
-  state = {
-    images: [],
-    query: '',
-    page: 0,
-    lastPage: 0,
-    status: 'idle',
-  }
+  const [images, setImages] = useState([]);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
+  const [status, setStatus] = useState('idle');
 
-  async componentDidUpdate(_, prevState) {
+  const intervalId = useRef(null);
 
-    const { query, page } = this.state;
+  useEffect(() => {
 
-    if (prevState.page !== page && page !== 1) {
-      this.setState({ status: 'pending' });
-      this.loadMore(query,page);
-    }
-
-    if (prevState.query !== query && query !== "") {
-      this.setState({ status: 'pending' });
-      this.makeNewFetch(query, page)
-    }
-  }
-
-  makeNewFetch = async (newQuery, page) => {
+    async function makeNewFetch () {
     try {
-      const response = await fetchPictures(newQuery, page);
+      const response = await fetchPictures(query, page);
       const { totalHits, hits } = response;
 
       if (totalHits === 0) {
-        this.setState({ lastPage: 1, status: 'rejected' });
+        setLastPage(1);
+        setStatus('rejected');
         Notify.failure('Sorry, there are no images matching your search request. Please try another request.');
         return;
       }
 
-      const lastPage = Math.ceil(totalHits / 12);
-      this.setState({ lastPage, images: hits, status: 'resolved' });
+      setLastPage(Math.ceil(totalHits / 12));
+      setImages(hits);
+      setStatus('resolved');
       Notify.success(`Hurray! ${totalHits} images found`);
 
     } catch (error) {
-      this.setState({ status: 'rejected' });
+      setStatus('rejected');
       console.log(error.message);
     }
-  }
+    }
 
-  loadMore = async (query, page) => {
+    async function loadMore () {
     try {
-        const response = await fetchPictures(query, page);
-        this.setState(({ images }) => ({ images: [...images, ...response.hits], status: 'resolved' }));
-        setTimeout(() => this.scroll(), 100);
+      const response = await fetchPictures(query, page);
+      const newImages = response.hits;
+      setImages(images => [...images, ...newImages]);
+      setStatus('resolved');
+      intervalId.current = setTimeout(() => scroll(), 100);
 
       } catch (error) {
-        this.setState({ status: 'rejected' });
-        console.log(error.message);
+        setStatus('rejected');
+        console.log(error);
       }
-  }
+    }
+    
+    if (page === 1 && query !== "") {
+      setStatus('pending');
+      makeNewFetch();
+    }
+    
+    if (page > 1) {
+      setStatus('pending');
+      loadMore();
+    }
 
-  handleSubmit = async (event) => {
+    return () => {
+      clearInterval(intervalId.current);
+    }
+  }, [query, page]);
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
     const newQuery = event.target.elements.input.value.trim();
-    const page = 1;
 
     if (newQuery === "") {
       return Notify.warning('Search field is empty. Please, enter your request');
     }
 
-    if (newQuery === this.state.query) {
+    if (newQuery === query) {
       return Notify.warning('That is the same request. Please, enter a new one');
     }
 
-    this.setState({ query: newQuery, page, images: [], status: 'pending' });
+    setStatus('pending');
+    setImages([]);
+    setPage(1);
+    setQuery(newQuery);
+}
 
+  const handleBtnClick = () => {
+    setPage(page => page + 1);
   }
 
-  handleBtnClick = () => {
-    this.setState(prevState => ({ page: prevState.page + 1, }));
-  }
-
-  scroll = () => {
+  const scroll = () => {
     const { clientHeight } = document.documentElement;
     window.scrollBy({
       top: clientHeight - 180,
@@ -92,19 +98,15 @@ export class App extends Component {
     });
   };
 
-  render() {
-
-    const { images, page, lastPage, status } = this.state;
-    return (
+  return (
       <div className={css.App}>
-        <Searchbar onSubmit={this.handleSubmit} isSubmitting={status === 'pending'} />
+        <Searchbar onSubmit={handleSubmit} isSubmitting={status === 'pending'} />
         <main>
           {images.length > 0 && <ImageGallery images={images} />}
           {status === 'pending'
             ? (<Loader />)
-            : page !== lastPage && (<Button onClick={this.handleBtnClick} />)}
+            : page !== lastPage && (<Button onClick={handleBtnClick} />)}
         </main>
       </div>
     )
   }
-};
