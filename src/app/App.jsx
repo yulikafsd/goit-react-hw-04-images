@@ -80,7 +80,6 @@ export function App() {
       return Notify.warning('That is the same request. Please, enter a new one');
     }
 
-    setStatus('pending');
     setImages([]);
     setPage(1);
     setQuery(newQuery);
